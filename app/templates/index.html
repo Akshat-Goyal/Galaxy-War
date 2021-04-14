@@ -1,0 +1,113 @@
+<html>
+
+<head>
+    <title>Three.js Tutorial</title>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%
+        }
+    </style>
+</head>
+
+<body>
+    <script src="{{ url_for('static', filename='js/three.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/OrbitControls.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/GLTFLoader.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/DRACOLoader.js') }}"></script>
+
+    <script>
+        var scene = new THREE.Scene();
+        // scene.background = new THREE.Color( 0xFFFFFF );
+
+        var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+        var renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // check when the browser size has changed and adjust the camera accordingly
+        window.addEventListener('resize', function () {
+            var WIDTH = window.innerWidth;
+            var HEIGHT = window.innerHeight;
+            renderer.setSize(WIDTH, HEIGHT);
+            camera.aspect = WIDTH / HEIGHT;
+            camera.updateProjectionMatrix();
+        });
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        // // // create the shape
+        // var geometry = new THREE.BoxGeometry(1, 1, 1);
+
+        // // create a material, colour or image texture
+        // var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+        // var cube = new THREE.Mesh(geometry, material);
+        // scene.add(cube);
+
+        // Instantiate a loader
+        const loader = new THREE.GLTFLoader();
+
+        // Optional: Provide a DRACOLoader instance to decode compressed mesh data
+        const dracoLoader = new THREE.DRACOLoader();
+        dracoLoader.setDecoderPath("{{ url_for('static', filename='models/draco/') }}");
+        loader.setDRACOLoader(dracoLoader);
+
+        // Load a glTF resource
+        loader.load(
+            // resource URL
+            "{{ url_for('static', filename='models/star.glb') }}",
+            // called when the resource is loaded
+            function (gltf) {
+                gltf.scene.position.set(1, 0, 0);
+                gltf.scene.rotation.y = Math.PI / 2;
+                gltf.scene.scale.set(0.1, 0.1, 0.1);
+                scene.add(gltf.scene);
+            },
+            // called while loading is progressing
+            function (xhr) {
+
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+
+            },
+            // called when loading has errors
+            function (error) {
+
+                console.log('An error happened');
+
+            }
+        );
+
+        camera.position.z = 7;
+
+        var ambientLight = new THREE.AmbientLight(0xFFFFFF, 5);
+        scene.add(ambientLight);
+
+
+        // game logic
+        var update = function () {
+
+        };
+
+        // draw scene
+        var render = function () {
+            renderer.render(scene, camera);
+        };
+
+        // run game loop (update, render, repeat)
+        var GameLoop = function () {
+            requestAnimationFrame(GameLoop);
+
+            update();
+            render();
+        };
+
+        GameLoop();
+    </script>
+</body>
+
+</html>
