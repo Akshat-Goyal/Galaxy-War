@@ -3,6 +3,8 @@ class Plane {
     constructor(scene) {
         this.obj = null;
         this.speed = 0.01;
+        this.health = 100;
+        this.score = 0;
         this.missiles = new Set();
         this.LoadModel(scene, new THREE.Vector3(0, 0, 0));
 
@@ -18,10 +20,27 @@ class Plane {
         return this.obj != null;
     }
 
+    GetHealth() {
+        return this.health;
+    }
+
+    GetScore() {
+        return this.score;
+    }
+
+    UpdateHealth(val = -10) {
+        this.health = Math.max(0, this.health + val);
+    }
+
+    UpdateScore(val = 2) {
+        this.score += val;
+    }
+
     GetPos() {
         if (!this.IsLoaded()) return null;
         return this.obj.position;
     }
+
 
     LaunchMissile(scene) {
         if (!this.IsLoaded()) return;
@@ -119,6 +138,7 @@ class Plane {
             if (pbox.intersectsBox(ebox)) {
                 enemies.delete(enemy);
                 scene.remove(enemy);
+                this.UpdateHealth(-10);
             }
         }
     }
@@ -131,6 +151,7 @@ class Plane {
             if (pbox.intersectsBox(sbox)) {
                 stars.delete(star);
                 scene.remove(star);
+                this.UpdateScore(2);
             }
         }
     }

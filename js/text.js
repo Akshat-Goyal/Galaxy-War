@@ -1,34 +1,37 @@
-const fontLoader = new THREE.FontLoader();
+class Text {
 
-fontLoader.load(
-    "./../fonts/helvetiker_regular.typeface.json",
-    (font) => {
-        const textGeometry = new THREE.TextGeometry('Hello three.js!', {
-            font: font,
-            size: 0.5,
-            height: 0.2,
-            curveSegments: 5,
-            bevelEnabled: true,
-            bevelThickness: 0.83,
-            bevelSize: 0.02,
-            bevelOffset: 0,
-            bevelSegments: 4
-        });
+    static LoadModel(scene, pos, textLine) {
+        // Instantiate a loader
+        const loader = new THREE.FontLoader();
 
-        var textMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        var text = new THREE.Mesh(textGeometry, textMaterial);
-        // text.position.set(-10, 0, 0);
-        // text.scale.set(0.1, 0.1, 0.1);
-        scene.add(text);
+        loader.load(
+            "./../fonts/helvetiker_regular.typeface.json",
+            (font) => {
+                const textGeometry = new THREE.TextGeometry(textLine, {
+                    font: font,
+                    size: 0.5,
+                    height: 0.2,
+                    curveSegments: 5,
+                    bevelEnabled: true,
+                    bevelThickness: 0.83,
+                    bevelSize: 0.02,
+                    bevelOffset: 0,
+                    bevelSegments: 4
+                });
 
-        // var textLight = new THREE.PointLight(0x00ffff, 10);
-        // textLight.position.set(0, 0, 0);
-        // scene.add(textLight);
-    },
-    (xhr) => {
-        console.log((xhr.loaded / xhr.total * 100) + '% Text loaded');
-    },
-    (error) => {
-        console.log('An error happened in Text Loader');
+                let textMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                let text = new THREE.Mesh(textGeometry, textMaterial);
+                text.position.set(pos.x, pos.y, pos.z);
+                text.scale.set(0.2, 0.2, 0.2);
+                scene.add(text);
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total * 100) + '% Text loaded');
+            },
+            (error) => {
+                console.log('An error happened in Text Loader');
+            }
+        );
     }
-);
+}
+

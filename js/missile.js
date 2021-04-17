@@ -26,7 +26,7 @@ class Missile {
                 group.position.set(pos.x, pos.y, pos.z);
                 group.rotation.y = Math.PI + rotY;
                 group.scale.set(0.05, 0.05, 0.05);
-                group.userData = {"lookAt": lookAt};
+                group.userData = { "lookAt": lookAt };
                 scene.add(group);
                 missiles.add(group);
             },
