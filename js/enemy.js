@@ -1,63 +1,61 @@
 class Enemy {
 
-    constructor(scene, pos) {
-        this.obj = null;
-        this.speed = 0.001;
-        this.LoadModel(scene, pos);
+    static speed = 0.001;
+    // yaw
+    static yaw = new THREE.Vector3(0, 1, 0).normalize();
 
-        // yaw, pitch, roll
-        this.roll = new THREE.Vector3(0, 0, -1).normalize();
-        this.yaw = new THREE.Vector3(0, 1, 0).normalize();
-    }
-
-    IsLoaded() {
-        return this.obj != null;
-    }
-
-    GetPos() {
-        if (!this.IsLoaded()) return null;
-        return this.obj.position;
-    }
-
-    Yaw(lookAt) {
-        if (!this.IsLoaded()) return;
-        let angle = lookAt.angleTo(this.roll);
-        let cross = new THREE.Vector3().crossVectors(this.roll, lookAt);
+    static Yaw(enemy, lookAt) {
+        let angle = lookAt.angleTo(enemy.userData.roll);
+        let cross = new THREE.Vector3().crossVectors(enemy.userData.roll, lookAt);
         if (cross.y < 0) angle = -angle;
         const q = new THREE.Quaternion();
-        q.setFromAxisAngle(this.yaw, angle);
-        this.roll.applyQuaternion(q).normalize();
-        this.obj.rotateOnAxis(this.yaw, angle);
+        q.setFromAxisAngle(Enemy.yaw, angle);
+        enemy.userData.roll.applyQuaternion(q).normalize();
+        enemy.rotateOnAxis(Enemy.yaw, angle);
     }
 
-    Move(val, pos) {
-        if (!this.IsLoaded() || pos == null) return;
-        let lookAt = new THREE.Vector3().subVectors(pos, this.obj.position).normalize();
-        this.Yaw(lookAt);
-        this.obj.position.x += val * this.speed * lookAt.x;
-        this.obj.position.y += val * this.speed * lookAt.y;
-        this.obj.position.z += val * this.speed * lookAt.z;
+    static Move(dt, pos, enemy) {
+        if (pos == null) return;
+        let lookAt = new THREE.Vector3().subVectors(pos, enemy.position).normalize();
+        Enemy.Yaw(enemy, lookAt);
+        enemy.position.x += dt * Enemy.speed * lookAt.x;
+        enemy.position.y += dt * Enemy.speed * lookAt.y;
+        enemy.position.z += dt * Enemy.speed * lookAt.z;
         return;
     }
 
-    CheckCollisionWithMissiles(missiles, scene) {
-        if (!this.IsLoaded() || !missiles.size) return false;
-        let toRemove = false;
-        let ebox = new THREE.Box3().setFromObject(this.obj);
-        for (let missile of missiles) {
-            if (!missile.IsLoaded()) continue;
-            let mbox = new THREE.Box3().setFromObject(missile.obj);
-            if (ebox.intersectsBox(mbox)) {
-                missile.RemoveModel(scene);
-                missiles.delete(missile);
-                toRemove = true;
+    // move enemies
+    static MoveEnemies(frameSpeed, startZ, dt, pos, enemies) {
+        for (let enemy of enemies) {
+            if (enemy.position.z < startZ) {
+                enemy.position.z += frameSpeed;
+            }
+            else {
+                Enemy.Move(dt, pos, enemy);
             }
         }
-        if (toRemove) return this.RemoveModel(scene);
-        return false;
     }
 
-    LoadModel(scene, pos) {
+    static CheckCollisionWithMissiles(enemies, missiles, scene) {
+        for (let enemy of enemies) {
+            let toRemove = false;
+            let ebox = new THREE.Box3().setFromObject(enemy);
+            for (let missile of missiles) {
+                let mbox = new THREE.Box3().setFromObject(missile);
+                if (ebox.intersectsBox(mbox)) {
+                    scene.remove(missile);
+                    missiles.delete(missile);
+                    toRemove = true;
+                }
+            }
+            if (toRemove) {
+                enemies.delete(enemy);
+                scene.remove(enemy);
+            }
+        }
+    }
+
+    static LoadModel(scene, enemies, pos) {
         // Instantiate a loader
         const loader = new THREE.GLTFLoader();
 
@@ -75,9 +73,9 @@ class Enemy {
                 group.position.set(pos.x, pos.y, pos.z);
                 group.rotation.y = Math.PI;
                 group.scale.set(0.01, 0.01, 0.01);
-
+                group.userData = {"roll": new THREE.Vector3(0, 0, -1).normalize()};
                 scene.add(group);
-                this.obj = group;
+                enemies.add(group);
             },
             // called while loading is progressing
             (xhr) => {
@@ -88,12 +86,5 @@ class Enemy {
                 console.log('An error happened while loading enemy plane');
             }
         );
-    }
-
-    RemoveModel(scene) {
-        if (!this.IsLoaded()) return false;
-        scene.remove(this.obj);
-        this.obj = null;
-        return true;
     }
 }

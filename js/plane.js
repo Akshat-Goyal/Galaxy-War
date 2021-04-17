@@ -25,8 +25,7 @@ class Plane {
 
     LaunchMissile(scene) {
         if (!this.IsLoaded()) return;
-        let missile = new Missile(scene, this.obj.position, this.roll.clone(), this.rotationY);
-        this.missiles.add(missile);
+        Missile.LoadModel(scene, this.missiles, this.obj.position, this.roll.clone(), this.rotationY);
     }
 
     Roll(val) {
@@ -108,16 +107,19 @@ class Plane {
     MoveMissiles(val) {
         if (!this.IsLoaded()) return;
         for (let missile of this.missiles) {
-            missile.Move(val);
+            Missile.Move(missile, val);
         }
     }
 
-    CheckCollisionWithEnemy(enemy, scene) {
-        if (!this.IsLoaded() || !enemy.IsLoaded()) return false;
+    CheckCollisionWithEnemies(enemies) {
+        if (!this.IsLoaded() || !enemies.size) return;
         let pbox = new THREE.Box3().setFromObject(this.obj);
-        let ebox = new THREE.Box3().setFromObject(enemy.obj);
-        if (pbox.intersectsBox(ebox)) {
-            return enemy.RemoveModel(scene);
+        for (let enemy of enemies) {
+            let ebox = new THREE.Box3().setFromObject(enemy);
+            if (pbox.intersectsBox(ebox)) {
+                enemies.delete(enemy);
+                scene.remove(enemy);
+            }
         }
     }
 
@@ -125,11 +127,10 @@ class Plane {
         if (!this.IsLoaded() || !stars.size) return;
         let pbox = new THREE.Box3().setFromObject(this.obj);
         for (let star of stars) {
-            if (!star.IsLoaded()) continue;
-            let sbox = new THREE.Box3().setFromObject(star.obj);
+            let sbox = new THREE.Box3().setFromObject(star);
             if (pbox.intersectsBox(sbox)) {
-                star.RemoveModel(scene);
                 stars.delete(star);
+                scene.remove(star);
             }
         }
     }

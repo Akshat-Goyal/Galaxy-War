@@ -1,29 +1,14 @@
 class Missile {
 
-    constructor(scene, pos, lookAt, rotY) {
-        this.obj = null;
-        this.speed = 0.003;
-        this.lookAt = lookAt;
-        this.LoadModel(scene, pos, rotY);
+    static speed = 0.003;
+
+    static Move(missile, val) {
+        missile.position.x += val * Missile.speed * missile.userData.lookAt.x;
+        missile.position.y += val * Missile.speed * missile.userData.lookAt.y;
+        missile.position.z += val * Missile.speed * missile.userData.lookAt.z;
     }
 
-    IsLoaded() {
-        return this.obj != null;
-    }
-
-    GetPos() {
-        if (!this.IsLoaded()) return null;
-        return this.obj.position;
-    }
-
-    Move(val) {
-        if (!this.IsLoaded()) return;
-        this.obj.position.x += val * this.speed * this.lookAt.x;
-        this.obj.position.y += val * this.speed * this.lookAt.y;
-        this.obj.position.z += val * this.speed * this.lookAt.z;
-    }
-
-    LoadModel(scene, pos, rotY) {
+    static LoadModel(scene, missiles, pos, lookAt, rotY) {
         // Instantiate a loader
         const loader = new THREE.GLTFLoader();
 
@@ -41,8 +26,9 @@ class Missile {
                 group.position.set(pos.x, pos.y, pos.z);
                 group.rotation.y = Math.PI + rotY;
                 group.scale.set(0.05, 0.05, 0.05);
+                group.userData = {"lookAt": lookAt};
                 scene.add(group);
-                this.obj = group;
+                missiles.add(group);
             },
             // called while loading is progressing
             (xhr) => {
@@ -53,12 +39,5 @@ class Missile {
                 console.log('An error happened while loading missile');
             }
         );
-    }
-
-    RemoveModel(scene) {
-        if (!this.IsLoaded()) return false;
-        scene.remove(this.obj);
-        this.obj = null;
-        return true;
     }
 }

@@ -1,20 +1,12 @@
 class Star {
 
-    constructor(scene, pos) {
-        this.obj = null;
-        this.LoadModel(scene, pos);
-    }
+    static MoveStars(frameSpeed, stars) {
+        for (let star of stars) {
+            star.position.z += frameSpeed;
+        }
+    };
 
-    IsLoaded() {
-        return this.obj != null;
-    }
-
-    GetPos() {
-        if (!this.IsLoaded()) return null;
-        return this.obj.position;
-    }
-
-    LoadModel(scene, pos) {
+    static LoadModel(scene, stars, pos) {
         // Instantiate a loader
         const loader = new THREE.GLTFLoader();
 
@@ -33,7 +25,7 @@ class Star {
                 group.rotation.z = Math.PI / 2;
                 group.scale.set(0.04, 0.04, 0.04);
                 scene.add(group);
-                this.obj = group;
+                stars.add(group);
             },
             // called while loading is progressing
             (xhr) => {
@@ -44,12 +36,5 @@ class Star {
                 console.log('An error happened while loading star');
             }
         );
-    }
-
-    RemoveModel(scene) {
-        if (!this.IsLoaded()) return false;
-        scene.remove(this.obj);
-        this.obj = null;
-        return true;
     }
 }

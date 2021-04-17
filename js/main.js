@@ -2,6 +2,18 @@ let scene = new THREE.Scene();
 // scene.background = new THREE.Color(0xFFFFFF);
 
 let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.y = 7;
+camera.lookAt(0, 0, 0);
+
+// returns visible dimensions at a distance dist from camera
+let VisibleDim = (dist) => {
+    let vFOV = THREE.MathUtils.degToRad(camera.fov); // convert vertical fov to radians
+    let height = 2 * Math.tan(vFOV / 2) * dist; // visible height
+    let width = height * camera.aspect;  // visible width
+    return [width / 2, height / 2];
+};
+
+let visibleDim = VisibleDim(camera.position.y);
 
 let renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -14,16 +26,39 @@ window.addEventListener('resize', () => {
     renderer.setSize(WIDTH, HEIGHT);
     camera.aspect = WIDTH / HEIGHT;
     camera.updateProjectionMatrix();
+    visibleDim = VisibleDim(camera.position.y);
 });
 
 controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-let plane = new Plane(scene);
-let stars = new Set([new Star(scene, new THREE.Vector3(2, 0, 0)), new Star(scene, new THREE.Vector3(5, 0, 0)), new Star(scene, new THREE.Vector3(-2, 0, 0))]);
-let enemies = new Set([new Enemy(scene, new THREE.Vector3(0, 0, -5))]);
+let frameSpeed = 0.001, frameZ = 0;
+let stars = new Set();
+let enemies = new Set();
 
-camera.position.y = 7;
-camera.lookAt(0, 0, 0);
+let generateRandomFloat = (min, max, p=2) => {
+    return parseFloat((Math.random() * (max - min) + min).toFixed(p));
+};
+
+let generateStars = (posZ, num = 5) => {
+    for (let i = 0; i < num; i++) {
+        Star.LoadModel(scene, stars, new THREE.Vector3(generateRandomFloat(-visibleDim[0], visibleDim[0]), 0, posZ + generateRandomFloat(-visibleDim[1], visibleDim[1])));
+    }
+};
+
+let generateEnemies = (posZ, num = 2) => {
+    for (let i = 0; i < num; i++) {
+        Enemy.LoadModel(scene, enemies, new THREE.Vector3(generateRandomFloat(-visibleDim[0], visibleDim[0]), 0, posZ + generateRandomFloat(-visibleDim[1], visibleDim[1])));
+    }
+};
+
+let generateFrame = (posZ) => {
+    generateStars(posZ);
+    generateEnemies(posZ);
+};
+
+generateFrame(0);
+generateFrame(-2 * visibleDim[1]);
+let plane = new Plane(scene);
 
 let prevTime = new Date().getTime();
 let dt = 0;
@@ -83,22 +118,6 @@ window.addEventListener('keydown', (event) => {
     }
 });
 
-// move enemies
-let MoveEnemies = () => {
-    for (let enemy of enemies) {
-        enemy.Move(dt, plane.GetPos());
-    }
-};
-
-// check collision of enemies
-let CheckEnemies = () => {
-    for (let enemy of enemies) {
-        if (plane.CheckCollisionWithEnemy(enemy, scene) || enemy.CheckCollisionWithMissiles(plane.missiles, scene)) {
-            enemies.delete(enemy);
-        }
-    }
-};
-
 // remove object outside frustum
 let InsideFrustum = () => {
     let frustum = new THREE.Frustum();
@@ -112,14 +131,32 @@ let InsideFrustum = () => {
     frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
     
     // frustum is now ready to check all the objects you need
+    for (let star of stars) {
+        if (star.position.z > visibleDim[1]) {
+            scene.remove(star);
+            stars.delete(star);
+        }
+    }
     for (let missile of plane.missiles) {
-        if (!missile.IsLoaded()) continue;
-        if (!frustum.containsPoint(missile.GetPos())) {
-            missile.RemoveModel(scene);
+        if (!frustum.containsPoint(missile.position)) {
+            scene.remove(missile);
             plane.missiles.delete(missile);
         }
     }
 };
+
+let MoveFrame = () => {
+    let moveZ = dt * frameSpeed;
+    frameZ += moveZ;
+    if (frameZ >= 2 * visibleDim[1]) {
+        frameZ = 0;
+        generateFrame(-2 * visibleDim[1]);
+    }
+
+    Star.MoveStars(moveZ, stars);
+    Enemy.MoveEnemies(moveZ, -2 * visibleDim[1], dt, plane.GetPos(), enemies);
+};
+
 
 // game logic
 let update = () => {
@@ -128,12 +165,13 @@ let update = () => {
     prevTime = curTime;
 
     // move objects
+    MoveFrame();
     plane.MoveMissiles(dt);
-    MoveEnemies();
 
     // check collision
-    CheckEnemies();
+    plane.CheckCollisionWithEnemies(enemies, scene);
     plane.CheckCollisionWithStars(stars, scene);
+    Enemy.CheckCollisionWithMissiles(enemies, plane.missiles, scene);
 
     // remove object outside frustum
     InsideFrustum();
@@ -153,11 +191,3 @@ let GameLoop = () => {
 };
 
 GameLoop();
-
-// returns visible dimensions at a distance dist from camera
-let VisibleDim = (dist) => {
-    let vFOV = THREE.MathUtils.degToRad(camera.fov); // convert vertical fov to radians
-    let height = 2 * Math.tan(vFOV / 2) * dist; // visible height
-    let width = height * camera.aspect;  // visible width
-    return [height, width];
-};
