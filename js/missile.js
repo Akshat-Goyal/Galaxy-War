@@ -2,10 +2,10 @@ class Missile {
 
     static speed = 0.003;
 
-    static Move(missile, val) {
-        missile.position.x += val * Missile.speed * missile.userData.lookAt.x;
-        missile.position.y += val * Missile.speed * missile.userData.lookAt.y;
-        missile.position.z += val * Missile.speed * missile.userData.lookAt.z;
+    static Move(missile, dt) {
+        missile.position.x += dt * Missile.speed * missile.userData.lookAt.x;
+        missile.position.y += dt * Missile.speed * missile.userData.lookAt.y;
+        missile.position.z += dt * Missile.speed * missile.userData.lookAt.z;
     }
 
     static LoadModel(scene, missiles, pos, lookAt, rotY) {

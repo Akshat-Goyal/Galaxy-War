@@ -19,6 +19,21 @@ let renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+let sceneDepth = 500;
+let sceneDim = VisibleDim(sceneDepth + camera.position.y);
+
+let BackGroundScene = (pos, img = 'down', rot = 0) => {
+    const geometry = new THREE.PlaneGeometry(2 * sceneDim[0], 2 * sceneDim[1]);
+    const material = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('./../img/skybox_' + img + '.png'), side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(pos.x, pos.y, pos.z);
+    mesh.rotation.x = Math.PI / 2 + rot;
+    scene.add(mesh);
+    return mesh;
+};
+
+let backScenes = [BackGroundScene(new THREE.Vector3(0, -sceneDepth, 0), 'down'), BackGroundScene(new THREE.Vector3(0, -sceneDepth, -2 * sceneDim[1]), 'down', Math.PI)];
+
 // check when the browser size has changed and adjust the camera accordingly
 window.addEventListener('resize', () => {
     let WIDTH = window.innerWidth;
@@ -27,26 +42,18 @@ window.addEventListener('resize', () => {
     camera.aspect = WIDTH / HEIGHT;
     camera.updateProjectionMatrix();
     visibleDim = VisibleDim(camera.position.y);
+    let dim = VisibleDim(sceneDepth + camera.position.y);
+    for (let backScene of backScenes) {
+        backScene.scale.x *= dim[0] / sceneDim[0];
+        backScene.scale.z *= dim[1] / sceneDim[1];
+    }
+    sceneDim = dim;
 });
 
-// let geometry = new THREE.BoxGeometry(1000, 1000, 1000);
-// let boxMaterials =
-//     [
-//         new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('./../img/front.png'), side: THREE.DoubleSide }), // Right side
-//         new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('./../img/back.png'), side: THREE.DoubleSide }), // Left side
-//         new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('./../img/up.png'), side: THREE.DoubleSide }), // Top side
-//         new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('./../img/down.png'), side: THREE.DoubleSide }), // Bottom side
-//         new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('./../img/right.png'), side: THREE.DoubleSide }), // Front side
-//         new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('./../img/left.png'), side: THREE.DoubleSide }) // Back side
-//     ];
-// // Create a MeshFaceMaterial, which allows the cube to have different materials on each face
-// let boxMaterial = new THREE.MeshFaceMaterial(boxMaterials);
-// let box = new THREE.Mesh(geometry, boxMaterial);
-// scene.add(box);
 
 controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-let frameSpeed = 0.001, frameZ = 0;
+let frameSpeed = 0.001, frameZ = 0, frameCnt = 2;
 let stars = new Set();
 let enemies = new Set();
 
@@ -54,7 +61,7 @@ let generateRandomFloat = (min, max, p = 2) => {
     return parseFloat((Math.random() * (max - min) + min).toFixed(p));
 };
 
-let generateStars = (posZ, num = 5) => {
+let generateStars = (posZ, num = 10) => {
     for (let i = 0; i < num; i++) {
         Star.LoadModel(scene, stars, new THREE.Vector3(generateRandomFloat(-visibleDim[0], visibleDim[0]), 0, posZ + generateRandomFloat(-visibleDim[1], visibleDim[1])));
     }
@@ -74,6 +81,7 @@ let generateFrame = (posZ, sNum, eNum) => {
 generateFrame(0, 5, 0);
 generateFrame(-2 * visibleDim[1], 5, 2);
 let plane = new Plane(scene);
+let jet = new Jet(-visibleDim[1] + 0.8);
 
 let prevTime = new Date().getTime();
 let dt = 0;
@@ -116,7 +124,7 @@ let TimeLeft = (delta = 700) => {
     return timeLeft;
 };
 
-let TextBox = (textLine, pos, size = [100, 20], color = "blue", fontSize = 20) => {
+let TextBox = (textLine, pos, size = [200, 20], color = "blue", fontSize = 20) => {
     let text = document.createElement('div');
     text.style.position = 'absolute';
     //text.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
@@ -127,7 +135,6 @@ let TextBox = (textLine, pos, size = [100, 20], color = "blue", fontSize = 20) =
     text.innerHTML = textLine;
     text.style.left = pos[0] + 'px';
     text.style.top = pos[1] + 'px';
-    console.log(text.style.fontSize);
     text.style.fontSize = fontSize + 'px';
     document.body.appendChild(text);
     return text;
@@ -136,7 +143,8 @@ let TextBox = (textLine, pos, size = [100, 20], color = "blue", fontSize = 20) =
 let texts = new Map();
 texts["time"] = TextBox("Time: " + TimeLeft(), [0, 0]);
 texts["health"] = TextBox("Health: " + plane.GetHealth(), [0, 24]);
-texts["score"] = TextBox("Score: " + + plane.GetScore(), [0, 48]);
+texts["eHealth"] = TextBox("Enemy Health: " + + jet.GetHealth(), [0, 48]);
+texts["score"] = TextBox("Score: " + + plane.GetScore(), [0, 72]);
 
 // remove object outside frustum
 let InsideFrustum = () => {
@@ -163,13 +171,28 @@ let InsideFrustum = () => {
             plane.missiles.delete(missile);
         }
     }
+    for (let missile of jet.missiles) {
+        if (!frustum.containsPoint(missile.position)) {
+            scene.remove(missile);
+            jet.missiles.delete(missile);
+        }
+    }
 };
 
 let MoveFrame = () => {
     let moveZ = dt * frameSpeed;
     frameZ += moveZ;
+    for (let backScene of backScenes) {
+        backScene.position.z += dt * frameSpeed * (sceneDim[0] / visibleDim[0]);
+    }
     if (frameZ >= 2 * visibleDim[1]) {
         frameZ = 0;
+        frameCnt += 1;
+        if (frameCnt == 3) {
+            jet.LoadModel(scene, new THREE.Vector3(0, 0, -visibleDim[1] - 2 * visibleDim[1]));
+        }
+        backScenes[0].position.set(0, -sceneDepth, backScenes[1].position.z - 2 * sceneDim[1]);
+        backScenes.push(backScenes.shift());
         generateFrame(-2 * visibleDim[1]);
     }
 
@@ -187,19 +210,29 @@ let update = () => {
         // move objects
         MoveFrame();
         plane.MoveMissiles(dt);
+        jet.Move(dt * frameSpeed, dt, plane.GetPos());
+
+        jet.LaunchMissile(scene);
+        jet.MoveMissiles(dt);
 
         // check collision
         plane.CheckCollisionWithEnemies(enemies, scene);
         plane.CheckCollisionWithStars(stars, scene);
         Enemy.CheckCollisionWithMissiles(enemies, plane.missiles, scene, plane);
+        jet.CheckCollisionWithMissiles(plane.missiles, scene, plane);
+        plane.CheckCollisionWithMissiles(jet.missiles, scene);
         if (plane.GetHealth() <= 0) {
             gameState = "GAME_LOST";
+        }
+        else if (jet.GetHealth() <= 0) {
+            plane.UpdateScore(100);
+            gameState = "GAME_WON";
         }
 
         texts["time"].innerHTML = "Time: " + TimeLeft();
         texts["health"].innerHTML = "Health: " + plane.GetHealth();
+        texts["eHealth"].innerHTML = "Enemy Health: " + + jet.GetHealth();
         texts["score"].innerHTML = "Score: " + + plane.GetScore();
-
         // remove object outside frustum
         InsideFrustum();
     }

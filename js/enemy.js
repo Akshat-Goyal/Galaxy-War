@@ -5,6 +5,8 @@ class Enemy {
     static yaw = new THREE.Vector3(0, 1, 0).normalize();
 
     static Yaw(enemy, lookAt) {
+        lookAt.y = 0;
+        lookAt.normalize();
         let angle = lookAt.angleTo(enemy.userData.roll);
         let cross = new THREE.Vector3().crossVectors(enemy.userData.roll, lookAt);
         if (cross.y < 0) angle = -angle;
@@ -17,10 +19,10 @@ class Enemy {
     static Move(dt, pos, enemy) {
         if (pos == null) return;
         let lookAt = new THREE.Vector3().subVectors(pos, enemy.position).normalize();
-        Enemy.Yaw(enemy, lookAt);
         enemy.position.x += dt * Enemy.speed * lookAt.x;
         enemy.position.y += dt * Enemy.speed * lookAt.y;
         enemy.position.z += dt * Enemy.speed * lookAt.z;
+        Enemy.Yaw(enemy, lookAt);
         return;
     }
 

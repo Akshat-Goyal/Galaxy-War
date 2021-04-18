@@ -47,86 +47,85 @@ class Plane {
         Missile.LoadModel(scene, this.missiles, this.obj.position, this.roll.clone(), this.rotationY);
     }
 
-    Roll(val) {
+    Roll(dt) {
         if (!this.IsLoaded()) return;
         const q = new THREE.Quaternion();
-        q.setFromAxisAngle(this.roll, val * this.rollSpeed);
+        q.setFromAxisAngle(this.roll, dt * this.rollSpeed);
         this.pitch.applyQuaternion(q).normalize();
         this.yaw.applyQuaternion(q).normalize();
-        this.obj.rotateOnAxis(this.roll, val * this.rollSpeed);
+        this.obj.rotateOnAxis(this.roll, dt * this.rollSpeed);
     }
 
-    Pitch(val) {
+    Pitch(dt) {
         if (!this.IsLoaded()) return;
         const q = new THREE.Quaternion();
-        q.setFromAxisAngle(this.pitch, val * this.rollSpeed);
+        q.setFromAxisAngle(this.pitch, dt * this.rollSpeed);
         this.roll.applyQuaternion(q).normalize();
         this.yaw.applyQuaternion(q).normalize();
-        this.obj.rotateOnAxis(this.pitch, val * this.rollSpeed);
+        this.obj.rotateOnAxis(this.pitch, dt * this.rollSpeed);
     }
 
-    Yaw(val) {
+    Yaw(dt) {
         if (!this.IsLoaded()) return;
         const q = new THREE.Quaternion();
-        q.setFromAxisAngle(this.yaw, val * this.rollSpeed);
-        this.rotationY += val * this.rollSpeed;
+        q.setFromAxisAngle(this.yaw, dt * this.rollSpeed);
+        this.rotationY += dt * this.rollSpeed;
         this.roll.applyQuaternion(q).normalize();
         this.pitch.applyQuaternion(q).normalize();
-        this.obj.rotateOnAxis(this.yaw, val * this.rollSpeed);
+        this.obj.rotateOnAxis(this.yaw, dt * this.rollSpeed);
     }
 
-    Front(val, camera) {
+    Front(dt, camera) {
         if (!this.IsLoaded()) return;
-        this.obj.position.y -= val * this.speed;
+        this.obj.position.y -= dt * this.speed;
         if (!this.InsideFrustum(camera)) {
-            this.obj.position.y += val * this.speed;
+            this.obj.position.y += dt * this.speed;
         }
     }
 
-    Back(val, camera) {
+    Back(dt, camera) {
         if (!this.IsLoaded()) return;
-        this.obj.position.y += val * this.speed;
+        this.obj.position.y += dt * this.speed;
         if (!this.InsideFrustum(camera)) {
-            this.obj.position.y -= val * this.speed;
+            this.obj.position.y -= dt * this.speed;
         }
     }
 
-    Up(val, camera) {
+    Up(dt, camera) {
         if (!this.IsLoaded()) return;
-        this.obj.position.z -= val * this.speed;
+        this.obj.position.z -= dt * this.speed;
         if (!this.InsideFrustum(camera)) {
-            this.obj.position.z += val * this.speed;
+            this.obj.position.z += dt * this.speed;
         }
     }
 
-    Down(val, camera) {
+    Down(dt, camera) {
         if (!this.IsLoaded()) return;
-        this.obj.position.z += val * this.speed;
+        this.obj.position.z += dt * this.speed;
         if (!this.InsideFrustum(camera)) {
-            this.obj.position.z -= val * this.speed;
+            this.obj.position.z -= dt * this.speed;
         }
     }
 
-    Left(val, camera) {
+    Left(dt, camera) {
         if (!this.IsLoaded()) return;
-        this.obj.position.x -= val * this.speed;
+        this.obj.position.x -= dt * this.speed;
         if (!this.InsideFrustum(camera)) {
-            this.obj.position.x += val * this.speed;
+            this.obj.position.x += dt * this.speed;
         }
     }
 
-    Right(val, camera) {
+    Right(dt, camera) {
         if (!this.IsLoaded()) return;
-        this.obj.position.x += val * this.speed;
+        this.obj.position.x += dt * this.speed;
         if (!this.InsideFrustum(camera)) {
-            this.obj.position.x -= val * this.speed;
+            this.obj.position.x -= dt * this.speed;
         }
     }
 
-    MoveMissiles(val) {
-        if (!this.IsLoaded()) return;
+    MoveMissiles(dt) {
         for (let missile of this.missiles) {
-            Missile.Move(missile, val);
+            Missile.Move(missile, dt);
         }
     }
 
@@ -152,6 +151,19 @@ class Plane {
                 stars.delete(star);
                 scene.remove(star);
                 this.UpdateScore(2);
+            }
+        }
+    }
+
+    CheckCollisionWithMissiles(missiles, scene) {
+        if (!this.IsLoaded()) return;
+        let pbox = new THREE.Box3().setFromObject(this.obj);
+        for (let missile of missiles) {
+            let mbox = new THREE.Box3().setFromObject(missile);
+            if (pbox.intersectsBox(mbox)) {
+                scene.remove(missile);
+                missiles.delete(missile);
+                this.UpdateHealth(-5);
             }
         }
     }
