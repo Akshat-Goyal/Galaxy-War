@@ -1,15 +1,15 @@
 class Plane {
 
-    constructor(scene) {
+    constructor(scene, speed = 0.01, rollSpeed = 0.01) {
         this.obj = null;
-        this.speed = 0.01;
+        this.speed = speed;
         this.health = 100;
         this.score = 0;
         this.missiles = new Set();
         this.LoadModel(scene, new THREE.Vector3(0, 0, 0));
 
         // yaw, pitch, roll
-        this.rollSpeed = 0.01;
+        this.rollSpeed = rollSpeed;
         this.rotationY = 0;
         this.roll = new THREE.Vector3(0, 0, -1).normalize();
         this.pitch = new THREE.Vector3(-1, 0, 0).normalize();
@@ -28,7 +28,7 @@ class Plane {
         return this.score;
     }
 
-    UpdateHealth(val = -10) {
+    UpdateHealth(val = -5) {
         this.health = Math.max(0, this.health + val);
     }
 
@@ -40,7 +40,6 @@ class Plane {
         if (!this.IsLoaded()) return null;
         return this.obj.position;
     }
-
 
     LaunchMissile(scene) {
         if (!this.IsLoaded()) return;
@@ -75,50 +74,50 @@ class Plane {
         this.obj.rotateOnAxis(this.yaw, dt * this.rollSpeed);
     }
 
-    Front(dt, camera) {
+    Front(dt, frustum) {
         if (!this.IsLoaded()) return;
         this.obj.position.y -= dt * this.speed;
-        if (!this.InsideFrustum(camera)) {
+        if (!this.InsideFrustum(frustum)) {
             this.obj.position.y += dt * this.speed;
         }
     }
 
-    Back(dt, camera) {
+    Back(dt, frustum) {
         if (!this.IsLoaded()) return;
         this.obj.position.y += dt * this.speed;
-        if (!this.InsideFrustum(camera)) {
+        if (!this.InsideFrustum(frustum)) {
             this.obj.position.y -= dt * this.speed;
         }
     }
 
-    Up(dt, camera) {
+    Up(dt, frustum) {
         if (!this.IsLoaded()) return;
         this.obj.position.z -= dt * this.speed;
-        if (!this.InsideFrustum(camera)) {
+        if (!this.InsideFrustum(frustum)) {
             this.obj.position.z += dt * this.speed;
         }
     }
 
-    Down(dt, camera) {
+    Down(dt, frustum) {
         if (!this.IsLoaded()) return;
         this.obj.position.z += dt * this.speed;
-        if (!this.InsideFrustum(camera)) {
+        if (!this.InsideFrustum(frustum)) {
             this.obj.position.z -= dt * this.speed;
         }
     }
 
-    Left(dt, camera) {
+    Left(dt, frustum) {
         if (!this.IsLoaded()) return;
         this.obj.position.x -= dt * this.speed;
-        if (!this.InsideFrustum(camera)) {
+        if (!this.InsideFrustum(frustum)) {
             this.obj.position.x += dt * this.speed;
         }
     }
 
-    Right(dt, camera) {
+    Right(dt, frustum) {
         if (!this.IsLoaded()) return;
         this.obj.position.x += dt * this.speed;
-        if (!this.InsideFrustum(camera)) {
+        if (!this.InsideFrustum(frustum)) {
             this.obj.position.x -= dt * this.speed;
         }
     }
@@ -129,64 +128,46 @@ class Plane {
         }
     }
 
-    CheckCollisionWithEnemies(enemies) {
-        if (!this.IsLoaded() || !enemies.size) return;
+    CheckCollision(scene, stars, missiles, enemies, eh = -10, mh = -5, ss = 5) {
+        if (!this.IsLoaded()) return;
         let pbox = new THREE.Box3().setFromObject(this.obj);
+
         for (let enemy of enemies) {
             let ebox = new THREE.Box3().setFromObject(enemy);
             if (pbox.intersectsBox(ebox)) {
                 enemies.delete(enemy);
                 scene.remove(enemy);
-                this.UpdateHealth(-10);
+                this.UpdateHealth(eh);
             }
         }
-    }
 
-    CheckCollisionWithStars(stars, scene) {
-        if (!this.IsLoaded() || !stars.size) return;
-        let pbox = new THREE.Box3().setFromObject(this.obj);
         for (let star of stars) {
             let sbox = new THREE.Box3().setFromObject(star);
             if (pbox.intersectsBox(sbox)) {
                 stars.delete(star);
                 scene.remove(star);
-                this.UpdateScore(2);
+                this.UpdateScore(ss);
             }
         }
-    }
 
-    CheckCollisionWithMissiles(missiles, scene) {
-        if (!this.IsLoaded()) return;
-        let pbox = new THREE.Box3().setFromObject(this.obj);
         for (let missile of missiles) {
             let mbox = new THREE.Box3().setFromObject(missile);
             if (pbox.intersectsBox(mbox)) {
                 scene.remove(missile);
                 missiles.delete(missile);
-                this.UpdateHealth(-5);
+                this.UpdateHealth(mh);
             }
         }
     }
 
-    InsideFrustum(camera) {
-        let frustum = new THREE.Frustum();
-        let cameraViewProjectionMatrix = new THREE.Matrix4();
-
-        // every time the camera or objects change position (or every frame)
-        // camera.updateMatrix();
-        camera.updateMatrixWorld(); // make sure the camera matrix is updated
-        camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
-        cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-        frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
-
-        // frustum is now ready to check all the objects you need
+    InsideFrustum(frustum) {
         // return frustum.intersectsObject(this.obj)
         // let box = new THREE.Box3().setFromObject(this.obj);
         // return frustum.intersectsBox(box);
         return frustum.containsPoint(this.obj.position);
     }
 
-    LoadModel(scene, pos) {
+    LoadModel(scene, pos, scale = new THREE.Vector3(0.02, 0.02, 0.02)) {
         // Instantiate a loader
         const loader = new THREE.GLTFLoader();
 
@@ -203,8 +184,7 @@ class Plane {
                 group.add(light);
                 group.position.set(pos.x, pos.y, pos.z);
                 group.rotation.y = Math.PI;
-                group.scale.set(0.02, 0.02, 0.02);
-
+                group.scale.set(scale.x, scale.y, scale.z);
                 scene.add(group);
                 this.obj = group;
             },

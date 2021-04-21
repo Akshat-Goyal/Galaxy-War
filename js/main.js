@@ -19,11 +19,11 @@ let renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-let sceneDepth = 500;
-let sceneDim = VisibleDim(sceneDepth + camera.position.y);
+let bgDepth = 500;
+let bgDim = VisibleDim(bgDepth + camera.position.y);
 
 let BackGroundScene = (pos, img = 'down', rot = 0) => {
-    const geometry = new THREE.PlaneGeometry(2 * sceneDim[0], 2 * sceneDim[1]);
+    const geometry = new THREE.PlaneGeometry(2 * bgDim[0], 2 * bgDim[1]);
     const material = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('./../img/skybox_' + img + '.png'), side: THREE.DoubleSide });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(pos.x, pos.y, pos.z);
@@ -32,28 +32,48 @@ let BackGroundScene = (pos, img = 'down', rot = 0) => {
     return mesh;
 };
 
-let backScenes = [BackGroundScene(new THREE.Vector3(0, -sceneDepth, 0), 'down'), BackGroundScene(new THREE.Vector3(0, -sceneDepth, -2 * sceneDim[1]), 'down', Math.PI)];
+let bgScenes = [BackGroundScene(new THREE.Vector3(0, -bgDepth, 0), 'down'), BackGroundScene(new THREE.Vector3(0, -bgDepth, -2 * bgDim[1]), 'down', Math.PI)];
+
+let CreateFrustum = () => {
+    let frustum = new THREE.Frustum();
+    let cameraViewProjectionMatrix = new THREE.Matrix4();
+
+    // every time the camera or objects change position (or every frame)
+    // camera.updateMatrix();
+    camera.updateMatrixWorld(); // make sure the camera matrix is updated
+    camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
+    cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
+
+    // frustum is now ready to check all the objects you need
+    return frustum;
+};
+
+let frustum = CreateFrustum();
 
 // check when the browser size has changed and adjust the camera accordingly
 window.addEventListener('resize', () => {
     let WIDTH = window.innerWidth;
     let HEIGHT = window.innerHeight;
+
     renderer.setSize(WIDTH, HEIGHT);
     camera.aspect = WIDTH / HEIGHT;
     camera.updateProjectionMatrix();
+    
     visibleDim = VisibleDim(camera.position.y);
-    let dim = VisibleDim(sceneDepth + camera.position.y);
-    for (let backScene of backScenes) {
-        backScene.scale.x *= dim[0] / sceneDim[0];
-        backScene.scale.z *= dim[1] / sceneDim[1];
+    let newBgdim = VisibleDim(bgDepth + camera.position.y);
+    for (let bgScene of bgScenes) {
+        bgScene.scale.x *= newBgdim[0] / bgDim[0];
+        bgScene.scale.z *= newBgdim[1] / bgDim[1];
     }
-    sceneDim = dim;
-});
+    bgDim = newBgdim;
 
+    frustum = CreateFrustum();
+});
 
 controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-let frameSpeed = 0.001, frameZ = 0, frameCnt = 2;
+let frameSpeed = 0.001, frameZ = 0, frameCnt = 0;
 let stars = new Set();
 let enemies = new Set();
 
@@ -67,7 +87,8 @@ let generateStars = (posZ, num = 10) => {
     }
 };
 
-let generateEnemies = (posZ, num = 2) => {
+let generateEnemies = (posZ, num = 2, maxEnemies = 3) => {
+    num = Math.min(num, maxEnemies - enemies.size);
     for (let i = 0; i < num; i++) {
         Enemy.LoadModel(scene, enemies, new THREE.Vector3(generateRandomFloat(-visibleDim[0], visibleDim[0]), 0, posZ + generateRandomFloat(-visibleDim[1], visibleDim[1])));
     }
@@ -78,41 +99,14 @@ let generateFrame = (posZ, sNum, eNum) => {
     generateEnemies(posZ, eNum);
 };
 
-generateFrame(0, 5, 0);
-generateFrame(-2 * visibleDim[1], 5, 2);
+frameCnt = 2;
+generateFrame(0, 10, 0);
+generateFrame(-2 * visibleDim[1]);
+
 let plane = new Plane(scene);
-let jet = new Jet(-visibleDim[1] + 0.8);
 
-let prevTime = new Date().getTime();
-let dt = 0;
-
-// keydown event listener
-window.addEventListener('keydown', (event) => {
-    switch (event.key) {
-        case "ArrowUp": plane.Up(dt, camera); break;
-        case "ArrowDown": plane.Down(dt, camera); break;
-        case "ArrowLeft": plane.Left(dt, camera); break;
-        case "ArrowRight": plane.Right(dt, camera); break;
-        case "r":
-        case "R": plane.Front(dt, camera); break;
-        case "f":
-        case "F": plane.Back(dt, camera); break;
-        // case "a":
-        // case "A": plane.Roll(dt); break;
-        // case "d":
-        // case "D": plane.Roll(-dt); break;
-        // case "w":
-        // case "W": plane.Pitch(-dt); break;
-        // case "s":
-        // case "S": plane.Pitch(dt); break;
-        case "q":
-        case "Q": plane.Yaw(dt); break;
-        case "e":
-        case "E": plane.Yaw(-dt); break;
-        case "p":
-        case "P": plane.LaunchMissile(scene); break;
-    }
-});
+let bossEnemyFrame = 4;
+let bossEnemy = new BossEnemy(-visibleDim[1] + 0.6);
 
 let startTime = new Date().getTime(), maxTime = 100;
 let gameState = "GAME_ACTIVE";
@@ -143,22 +137,43 @@ let TextBox = (textLine, pos, size = [200, 20], color = "blue", fontSize = 20) =
 let texts = new Map();
 texts["time"] = TextBox("Time: " + TimeLeft(), [0, 0]);
 texts["health"] = TextBox("Health: " + plane.GetHealth(), [0, 24]);
-texts["eHealth"] = TextBox("Enemy Health: " + + jet.GetHealth(), [0, 48]);
-texts["score"] = TextBox("Score: " + + plane.GetScore(), [0, 72]);
+texts["eHealth"] = TextBox("Enemy Health: " + + bossEnemy.GetHealth(), [0, 48]);
+texts["score"] = TextBox("Score: " + plane.GetScore(), [0, 72]);
+
+let prevTime = new Date().getTime();
+let dt = 0;
+
+// keydown event listener
+window.addEventListener('keydown', (event) => {
+    if (gameState != "GAME_ACTIVE") return;
+    switch (event.key) {
+        case "ArrowUp": plane.Up(dt, frustum); break;
+        case "ArrowDown": plane.Down(dt, frustum); break;
+        case "ArrowLeft": plane.Left(dt, frustum); break;
+        case "ArrowRight": plane.Right(dt, frustum); break;
+        case "r":
+        case "R": plane.Front(dt, frustum); break;
+        case "f":
+        case "F": plane.Back(dt, frustum); break;
+        // case "a":
+        // case "A": plane.Roll(dt); break;
+        // case "d":
+        // case "D": plane.Roll(-dt); break;
+        // case "w":
+        // case "W": plane.Pitch(-dt); break;
+        // case "s":
+        // case "S": plane.Pitch(dt); break;
+        case "q":
+        case "Q": plane.Yaw(dt); break;
+        case "e":
+        case "E": plane.Yaw(-dt); break;
+        case "p":
+        case "P": plane.LaunchMissile(scene); break;
+    }
+});
 
 // remove object outside frustum
 let InsideFrustum = () => {
-    let frustum = new THREE.Frustum();
-    let cameraViewProjectionMatrix = new THREE.Matrix4();
-
-    // every time the camera or objects change position (or every frame)
-    // camera.updateMatrix();
-    camera.updateMatrixWorld(); // make sure the camera matrix is updated
-    camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
-    cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
-
-    // frustum is now ready to check all the objects you need
     for (let star of stars) {
         if (star.position.z > visibleDim[1]) {
             scene.remove(star);
@@ -171,10 +186,10 @@ let InsideFrustum = () => {
             plane.missiles.delete(missile);
         }
     }
-    for (let missile of jet.missiles) {
+    for (let missile of bossEnemy.missiles) {
         if (!frustum.containsPoint(missile.position)) {
             scene.remove(missile);
-            jet.missiles.delete(missile);
+            bossEnemy.missiles.delete(missile);
         }
     }
 };
@@ -182,20 +197,19 @@ let InsideFrustum = () => {
 let MoveFrame = () => {
     let moveZ = dt * frameSpeed;
     frameZ += moveZ;
-    for (let backScene of backScenes) {
-        backScene.position.z += dt * frameSpeed * (sceneDim[0] / visibleDim[0]);
+    for (let bgScene of bgScenes) {
+        bgScene.position.z += moveZ * (bgDim[0] / visibleDim[0]);
     }
     if (frameZ >= 2 * visibleDim[1]) {
-        frameZ = 0;
+        frameZ -= 2 * visibleDim[1];
         frameCnt += 1;
-        if (frameCnt == 3) {
-            jet.LoadModel(scene, new THREE.Vector3(0, 0, -visibleDim[1] - 2 * visibleDim[1]));
+        if (frameCnt == bossEnemyFrame) {
+            bossEnemy.LoadModel(scene, new THREE.Vector3(0, 0, -visibleDim[1] - 2 * visibleDim[1]));
         }
-        backScenes[0].position.set(0, -sceneDepth, backScenes[1].position.z - 2 * sceneDim[1]);
-        backScenes.push(backScenes.shift());
+        bgScenes[0].position.set(0, -bgDepth, bgScenes[1].position.z - 2 * bgDim[1]);
+        bgScenes.push(bgScenes.shift());
         generateFrame(-2 * visibleDim[1]);
     }
-
     Star.MoveStars(moveZ, stars);
     Enemy.MoveEnemies(moveZ, -2 * visibleDim[1], dt, plane.GetPos(), enemies);
 };
@@ -210,29 +224,28 @@ let update = () => {
         // move objects
         MoveFrame();
         plane.MoveMissiles(dt);
-        jet.Move(dt * frameSpeed, dt, plane.GetPos());
+        bossEnemy.Move(dt * frameSpeed, dt, plane.GetPos());
 
-        jet.LaunchMissile(scene);
-        jet.MoveMissiles(dt);
+        bossEnemy.LaunchMissile(scene);
+        bossEnemy.MoveMissiles(dt);
 
         // check collision
-        plane.CheckCollisionWithEnemies(enemies, scene);
-        plane.CheckCollisionWithStars(stars, scene);
         Enemy.CheckCollisionWithMissiles(enemies, plane.missiles, scene, plane);
-        jet.CheckCollisionWithMissiles(plane.missiles, scene, plane);
-        plane.CheckCollisionWithMissiles(jet.missiles, scene);
+        plane.CheckCollision(scene, stars, bossEnemy.missiles, enemies);
+        bossEnemy.CheckCollisionWithMissiles(plane.missiles, scene, plane);
         if (plane.GetHealth() <= 0) {
             gameState = "GAME_LOST";
         }
-        else if (jet.GetHealth() <= 0) {
+        else if (bossEnemy.GetHealth() <= 0) {
             plane.UpdateScore(100);
             gameState = "GAME_WON";
         }
 
         texts["time"].innerHTML = "Time: " + TimeLeft();
         texts["health"].innerHTML = "Health: " + plane.GetHealth();
-        texts["eHealth"].innerHTML = "Enemy Health: " + + jet.GetHealth();
+        texts["eHealth"].innerHTML = "Enemy Health: " + + bossEnemy.GetHealth();
         texts["score"].innerHTML = "Score: " + + plane.GetScore();
+
         // remove object outside frustum
         InsideFrustum();
     }

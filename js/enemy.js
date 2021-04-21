@@ -38,7 +38,7 @@ class Enemy {
         }
     }
 
-    static CheckCollisionWithMissiles(enemies, missiles, scene, plane) {
+    static CheckCollisionWithMissiles(enemies, missiles, scene, plane, ms = 5) {
         for (let enemy of enemies) {
             let toRemove = false;
             let ebox = new THREE.Box3().setFromObject(enemy);
@@ -53,12 +53,12 @@ class Enemy {
             if (toRemove) {
                 enemies.delete(enemy);
                 scene.remove(enemy);
-                plane.UpdateScore(5);
+                plane.UpdateScore(ms);
             }
         }
     }
 
-    static LoadModel(scene, enemies, pos) {
+    static LoadModel(scene, enemies, pos, scale = new THREE.Vector3(0.01, 0.01, 0.01)) {
         // Instantiate a loader
         const loader = new THREE.GLTFLoader();
 
@@ -75,7 +75,7 @@ class Enemy {
                 group.add(light);
                 group.position.set(pos.x, pos.y, pos.z);
                 group.rotation.y = Math.PI;
-                group.scale.set(0.01, 0.01, 0.01);
+                group.scale.set(scale.x, scale.y, scale.z);
                 group.userData = { "roll": new THREE.Vector3(0, 0, -1).normalize() };
                 scene.add(group);
                 enemies.add(group);

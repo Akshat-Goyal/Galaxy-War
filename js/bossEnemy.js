@@ -1,11 +1,12 @@
-class Jet {
+class BossEnemy {
 
-    constructor(startZ) {
+    constructor(startZ, speed = 0.001, launchMaxCnt = 80) {
         this.obj = null;
-        this.speed = 0.001;
+        this.speed = speed;
         this.health = 100;
         this.startZ = startZ;
         this.launchCnt = 0;
+        this.launchMaxCnt = launchMaxCnt;
         this.missiles = new Set();
 
         // yaw, roll
@@ -34,7 +35,7 @@ class Jet {
     LaunchMissile(scene) {
         if (!this.IsLoaded() || this.obj.position.z < this.startZ) return;
         this.launchCnt += 1;
-        if (this.launchCnt == 80) {
+        if (this.launchCnt == this.launchMaxCnt) {
             this.launchCnt = 0;
             Missile.LoadModel(scene, this.missiles, this.obj.position, this.roll.clone(), this.rotationY);
         }
@@ -76,7 +77,7 @@ class Jet {
         }
     }
 
-    CheckCollisionWithMissiles(missiles, scene, plane) {
+    CheckCollisionWithMissiles(missiles, scene, plane, ms = 5, mh = -5) {
         if (!this.IsLoaded()) return;
         let jbox = new THREE.Box3().setFromObject(this.obj);
         for (let missile of missiles) {
@@ -84,13 +85,13 @@ class Jet {
             if (jbox.intersectsBox(mbox)) {
                 scene.remove(missile);
                 missiles.delete(missile);
-                plane.UpdateScore(5);
-                this.UpdateHealth(-5);
+                plane.UpdateScore(ms);
+                this.UpdateHealth(mh);
             }
         }
     }
 
-    LoadModel(scene, pos) {
+    LoadModel(scene, pos, scale = new THREE.Vector3(0.02, 0.02, 0.02)) {
         // Instantiate a loader
         const loader = new THREE.GLTFLoader();
 
@@ -106,9 +107,7 @@ class Jet {
                 group.add(gltf.scene);
                 group.add(light);
                 group.position.set(pos.x, pos.y, pos.z);
-                group.scale.set(0.02, 0.02, 0.02);
-                let box = new THREE.Box3().setFromObject(group);
-                console.log(box);
+                group.scale.set(scale.x, scale.y, scale.z);
                 scene.add(group);
                 this.obj = group;
             },

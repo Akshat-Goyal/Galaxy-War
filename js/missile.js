@@ -8,7 +8,7 @@ class Missile {
         missile.position.z += dt * Missile.speed * missile.userData.lookAt.z;
     }
 
-    static LoadModel(scene, missiles, pos, lookAt, rotY) {
+    static LoadModel(scene, missiles, pos, lookAt, rotY, scale = new THREE.Vector3(0.02, 0.02, 0.02)) {
         // Instantiate a loader
         const loader = new THREE.GLTFLoader();
 
@@ -25,7 +25,7 @@ class Missile {
                 group.add(light);
                 group.position.set(pos.x, pos.y, pos.z);
                 group.rotation.y = Math.PI + rotY;
-                group.scale.set(0.05, 0.05, 0.05);
+                group.scale.set(scale.x, scale.y, scale.z);
                 group.userData = { "lookAt": lookAt };
                 scene.add(group);
                 missiles.add(group);

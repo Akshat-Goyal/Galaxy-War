@@ -6,7 +6,7 @@ class Star {
         }
     };
 
-    static LoadModel(scene, stars, pos) {
+    static LoadModel(scene, stars, pos, scale = new THREE.Vector3(0.04, 0.04, 0.04)) {
         // Instantiate a loader
         const loader = new THREE.GLTFLoader();
 
@@ -23,7 +23,7 @@ class Star {
                 group.add(light);
                 group.position.set(pos.x, pos.y, pos.z);
                 group.rotation.z = Math.PI / 2;
-                group.scale.set(0.04, 0.04, 0.04);
+                group.scale.set(scale.x, scale.y, scale.z);
                 scene.add(group);
                 stars.add(group);
             },
