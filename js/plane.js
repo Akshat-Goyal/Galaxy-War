@@ -177,20 +177,15 @@ class Plane {
             "./../models/plane.glb",
             // called when the resource is loaded
             (gltf) => {
-                let light = new THREE.DirectionalLight(0xFFFFFF, 10);
-
-                let group = new THREE.Object3D();
-                group.add(gltf.scene);
-                group.add(light);
-                group.position.set(pos.x, pos.y, pos.z);
-                group.rotation.y = Math.PI;
-                group.scale.set(scale.x, scale.y, scale.z);
-                scene.add(group);
-                this.obj = group;
+                gltf.scene.position.set(pos.x, pos.y, pos.z);
+                gltf.scene.rotation.y = Math.PI;
+                gltf.scene.scale.set(scale.x, scale.y, scale.z);
+                scene.add(gltf.scene);
+                this.obj = gltf.scene;
             },
             // called while loading is progressing
             (xhr) => {
-                console.log((xhr.loaded / xhr.total * 100) + '% Plane loaded');
+                // console.log((xhr.loaded / xhr.total * 100) + '% Plane loaded');
             },
             // called when loading has errors
             (error) => {

@@ -29,7 +29,7 @@ class Star {
             },
             // called while loading is progressing
             (xhr) => {
-                console.log((xhr.loaded / xhr.total * 100) + '% Star loaded');
+                // console.log((xhr.loaded / xhr.total * 100) + '% Star loaded');
             },
             // called when loading has errors
             (error) => {

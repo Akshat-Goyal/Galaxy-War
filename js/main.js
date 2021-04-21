@@ -59,7 +59,7 @@ window.addEventListener('resize', () => {
     renderer.setSize(WIDTH, HEIGHT);
     camera.aspect = WIDTH / HEIGHT;
     camera.updateProjectionMatrix();
-    
+
     visibleDim = VisibleDim(camera.position.y);
     let newBgdim = VisibleDim(bgDepth + camera.position.y);
     for (let bgScene of bgScenes) {

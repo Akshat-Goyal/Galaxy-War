@@ -65,24 +65,19 @@ class Enemy {
         // Load a glTF resource
         loader.load(
             // resource URL
-            "./../models/plane.glb",
+            "./../models/enemy.glb",
             // called when the resource is loaded
             (gltf) => {
-                let light = new THREE.DirectionalLight(0xFFFFFF, 10);
-
-                let group = new THREE.Object3D();
-                group.add(gltf.scene);
-                group.add(light);
-                group.position.set(pos.x, pos.y, pos.z);
-                group.rotation.y = Math.PI;
-                group.scale.set(scale.x, scale.y, scale.z);
-                group.userData = { "roll": new THREE.Vector3(0, 0, -1).normalize() };
-                scene.add(group);
-                enemies.add(group);
+                gltf.scene.position.set(pos.x, pos.y, pos.z);
+                gltf.scene.rotation.y = Math.PI;
+                gltf.scene.scale.set(scale.x, scale.y, scale.z);
+                gltf.scene.userData = { "roll": new THREE.Vector3(0, 0, -1).normalize() };
+                scene.add(gltf.scene);
+                enemies.add(gltf.scene);
             },
             // called while loading is progressing
             (xhr) => {
-                console.log((xhr.loaded / xhr.total * 100) + '% Enemy Plane loaded');
+                // console.log((xhr.loaded / xhr.total * 100) + '% Enemy Plane loaded');
             },
             // called when loading has errors
             (error) => {

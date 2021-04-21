@@ -62,6 +62,7 @@ class BossEnemy {
         else {
             if (pos == null) return;
             let lookAt = new THREE.Vector3().subVectors(pos, this.obj.position).normalize();
+            console.log(lookAt);
             lookAt.z = 0;
             lookAt.normalize();
             this.obj.position.x += dt * this.speed * lookAt.x;
@@ -91,29 +92,24 @@ class BossEnemy {
         }
     }
 
-    LoadModel(scene, pos, scale = new THREE.Vector3(0.02, 0.02, 0.02)) {
+    LoadModel(scene, pos, scale = new THREE.Vector3(0.022, 0.022, 0.022)) {
         // Instantiate a loader
         const loader = new THREE.GLTFLoader();
 
         // Load a glTF resource
         loader.load(
             // resource URL
-            "./../models/jet.glb",
+            "./../models/bossEnemy.glb",
             // called when the resource is loaded
             (gltf) => {
-                let light = new THREE.DirectionalLight(0xFFFFFF, 10);
-
-                let group = new THREE.Object3D();
-                group.add(gltf.scene);
-                group.add(light);
-                group.position.set(pos.x, pos.y, pos.z);
-                group.scale.set(scale.x, scale.y, scale.z);
-                scene.add(group);
-                this.obj = group;
+                gltf.scene.position.set(pos.x, pos.y, pos.z);
+                gltf.scene.scale.set(scale.x, scale.y, scale.z);
+                scene.add(gltf.scene);
+                this.obj = gltf.scene;
             },
             // called while loading is progressing
             (xhr) => {
-                console.log((xhr.loaded / xhr.total * 100) + '% Jet loaded');
+                // console.log((xhr.loaded / xhr.total * 100) + '% Jet loaded');
             },
             // called when loading has errors
             (error) => {
