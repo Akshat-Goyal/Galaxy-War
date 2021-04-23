@@ -1,6 +1,6 @@
 class Plane {
 
-    constructor(scene, speed = 0.01, rollSpeed = 0.01) {
+    constructor(scene, speed = 0.01, rollSpeed = 0.005) {
         this.obj = null;
         this.speed = speed;
         this.health = 100;
