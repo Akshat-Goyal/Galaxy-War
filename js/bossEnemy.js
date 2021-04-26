@@ -62,7 +62,6 @@ class BossEnemy {
         else {
             if (pos == null) return;
             let lookAt = new THREE.Vector3().subVectors(pos, this.obj.position).normalize();
-            console.log(lookAt);
             lookAt.z = 0;
             lookAt.normalize();
             this.obj.position.x += dt * this.speed * lookAt.x;

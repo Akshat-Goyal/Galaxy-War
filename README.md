@@ -17,4 +17,4 @@ The player needs to protect the plane from the enemies and kill boss enemy using
     - E - rotate right
 
 3. 1 Key to launch missile.
-    - P - launches missile
+    - P or Spacebar - launches missile

@@ -22,17 +22,17 @@ document.body.appendChild(renderer.domElement);
 let bgDepth = 500;
 let bgDim = VisibleDim(bgDepth + camera.position.y);
 
-let BackGroundScene = (pos, img = 'down', rot = 0) => {
+let BackGroundScene = (posZ, img = 'down', rot = 0) => {
     const geometry = new THREE.PlaneGeometry(2 * bgDim[0], 2 * bgDim[1]);
     const material = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('./../img/skybox_' + img + '.png'), side: THREE.DoubleSide });
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(pos.x, pos.y, pos.z);
+    mesh.position.set(0, -bgDepth, posZ);
     mesh.rotation.x = Math.PI / 2 + rot;
     scene.add(mesh);
     return mesh;
 };
 
-let bgScenes = [BackGroundScene(new THREE.Vector3(0, -bgDepth, 0), 'down'), BackGroundScene(new THREE.Vector3(0, -bgDepth, -2 * bgDim[1]), 'down', Math.PI)];
+let bgScenes = [BackGroundScene(0, 'down'), BackGroundScene(-2 * bgDim[1], 'down', Math.PI)];
 
 let CreateFrustum = () => {
     let frustum = new THREE.Frustum();
@@ -169,6 +169,7 @@ window.addEventListener('keydown', (event) => {
         case "E": plane.Yaw(-dt); break;
         case "p":
         case "P": plane.LaunchMissile(scene); break;
+        case " ": plane.LaunchMissile(scene); break;
     }
 });
 
@@ -277,3 +278,58 @@ let GameLoop = () => {
 };
 
 GameLoop();
+
+
+// ########################################################
+let BgModel = (size = [1, 1], img = 'down') => {
+    const geometry = new THREE.PlaneGeometry(size[0], size[1]);
+    const material = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('./../img/skybox_' + img + '.png'), side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.rotation.x = Math.PI / 2;
+    return mesh;
+};
+
+// exports model to glb if binary is true else gltf
+let ExportModel = (obj, file_name = "scene", binary = true, delta = 3000) => {
+    setTimeout(() => {
+        let link = document.createElement('a');
+        link.style.display = 'none';
+        document.body.appendChild(link);
+
+        function save(blob, filename) {
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        function saveString(text, filename) {
+            // save(new Blob([text], { type: 'text/plain' }), filename);
+            save(new Blob([text], { type: 'application/json' }), filename);
+        }
+
+        function saveArrayBuffer(buffer, filename) {
+            save(new Blob([buffer], { type: 'application/octet-stream' }), filename);
+        }
+
+        let script = document.createElement('script');
+        script.src = 'https://threejs.org/examples/js/exporters/GLTFExporter.js';
+        script.onload = function () {
+            let exporter = new THREE.GLTFExporter();
+            let options = { binary: binary };
+            let sceneToExport = obj;
+            exporter.parse(sceneToExport, function (result) {
+                if (binary) {
+                    saveArrayBuffer(result, file_name + ".glb");
+                }
+                else {
+                    let output = JSON.stringify(result, null, 2);
+                    saveString(output, file_name + ".gltf");
+                }
+            }, options);
+        };
+        document.head.appendChild(script);
+
+    }, delta);
+};
+
+// ExportModel(BgModel(), "bg", true);
