@@ -1,6 +1,6 @@
 # Sky Force
 
-The player needs to protect the plane from the enemies and kill boss enemy using missiles within time to win the game.
+Galaxy's last hope is in your hands, take control of the spaceship and kill enemies and boss enemy using missiles within time to protect the galaxy.
 
 ## HOW TO RUN
 
@@ -18,3 +18,7 @@ The player needs to protect the plane from the enemies and kill boss enemy using
 
 3. 1 Key to launch missile.
     - P or Spacebar - launches missile
+
+## TRAILER LINK
+
+https://drive.google.com/file/d/1MRRfTJq4E3K9n5XNXGU34O0UGTDzvvLq/view?usp=sharing
