@@ -21,4 +21,4 @@ Galaxy's last hope is in your hands, take control of the spaceship and kill enem
 
 ## TRAILER LINK
 
-https://drive.google.com/file/d/1MRRfTJq4E3K9n5XNXGU34O0UGTDzvvLq/view?usp=sharing
+https://youtu.be/9rnS-VfYOMs
