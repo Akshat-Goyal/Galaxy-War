@@ -4,6 +4,11 @@ Galaxy's last hope is in your hands, take control of the spaceship and kill enem
 
 ## HOW TO RUN
 
+- Type following command:
+    ```
+    php -S 127.0.0.1:8000
+    ```
+
 1. 6 Keys to move the plane.
     - ArrowUp - Top
     - ArrowDown - Bottom
